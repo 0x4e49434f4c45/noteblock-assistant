@@ -30,6 +30,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
-          files: wrapper/build/libs/amcdb-${{ github.ref_name }}.jar
+          files: build/libs/noteblock-assistant-${{ github.ref_name }}.jar
           fail_on_unmatched_files: true
           generate_release_notes: true
