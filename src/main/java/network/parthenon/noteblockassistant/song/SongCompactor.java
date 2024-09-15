@@ -10,6 +10,10 @@ import net.minecraft.world.World;
 
 import java.util.EnumSet;
 
+/**
+ * Implements the song compaction algorithm, which attempts to fold a song into the least practical space.
+ * The compacted song has unnecessary non-sounding blocks removed.
+ */
 public class SongCompactor {
     /**
      * Places the song into the world in compact form, attempting to place the note blocks

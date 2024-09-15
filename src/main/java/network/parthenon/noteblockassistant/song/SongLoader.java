@@ -12,6 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SongLoader {
+    /**
+     * Attempts to read a song in the format created by SongTemplateGenerator.
+     * @param world     The world from which to load the song.
+     * @param startPos  The position of the initial downbeat marker.
+     * @param direction The direction the song proceeds.
+     * @param numTracks The number of tracks to attempt to read.
+     * @throws SongDetectionException If an invalid block is found.
+     */
     public static Song loadFromWorld(World world, BlockPos startPos, Direction direction, int numTracks) throws SongDetectionException {
         if(direction == Direction.DOWN || direction == Direction.UP) {
             throw new IllegalArgumentException("Invalid direction: Song can only be loaded in a horizontal direction.");

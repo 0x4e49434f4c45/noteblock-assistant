@@ -10,6 +10,17 @@ import net.minecraft.world.World;
 import java.util.List;
 
 public class SongTemplateGenerator {
+    /**
+     * Generates a song template, ready to be populated with note blocks.
+     * @param world               The world in which to generate the template.
+     * @param cornerPos           Where to place the initial downbeat marker.
+     * @param direction           The direction to generate the template in, starting from cornerPos.
+     * @param measures            The number of measures to generate.
+     * @param beatsPerMeasure     The number of beats per measure to generate.
+     * @param subdivisionsPerBeat The number of subdivisions to generate per beat.
+     * @param subdivisonDelay     The span, in repeater ticks, of each subdivision.
+     * @param instrBlocks         A list of instrument-determining blocks. A track will be generated for each one.
+     */
     public static void generate(
             World world,
             BlockPos cornerPos,
@@ -60,6 +71,11 @@ public class SongTemplateGenerator {
         }
     }
 
+    /**
+     * Gets the appropriate marker block for the specified beat and subdivision within a measure.
+     * @param beat        Beat number
+     * @param subdivision Subdivision number
+     */
     private static BlockState getMarkerBlock(int beat, int subdivision) {
         if(subdivision != 0) {
             return SongBlockStates.SUBDIVISION;
