@@ -1,15 +1,14 @@
 package network.parthenon.noteblockassistant.song;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.NoteBlock;
-import net.minecraft.block.RepeaterBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NoteBlock;
+import net.minecraft.world.level.block.RepeaterBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class SongLoader {
     /**
@@ -20,7 +19,7 @@ public class SongLoader {
      * @param numTracks The number of tracks to attempt to read.
      * @throws SongDetectionException If an invalid block is found.
      */
-    public static Song loadFromWorld(World world, BlockPos startPos, Direction direction, int numTracks) throws SongDetectionException {
+    public static Song loadFromWorld(Level world, BlockPos startPos, Direction direction, int numTracks) throws SongDetectionException {
         if(direction == Direction.DOWN || direction == Direction.UP) {
             throw new IllegalArgumentException("Invalid direction: Song can only be loaded in a horizontal direction.");
         }
@@ -36,43 +35,43 @@ public class SongLoader {
             if(currentBlock != SongBlockStates.MEASURE && currentBlock != SongBlockStates.BEAT && currentBlock != SongBlockStates.FILL) {
                 break;
             }
-            markerPos = markerPos.offset(direction);
+            markerPos = markerPos.relative(direction);
         }
 
-        int length = markerPos.getManhattanDistance(startPos);
+        int length = markerPos.distManhattan(startPos);
 
         // validate and load the song
         ArrayList<List<Song.Note>> tracks = new ArrayList<>();
-        Direction widthDirection = direction.rotateClockwise(Direction.Axis.Y);
+        Direction widthDirection = direction.getClockWise(Direction.Axis.Y);
         for(int trackNum = 0; trackNum < numTracks; trackNum++) {
             ArrayList<Song.Note> track = new ArrayList<>(length / 2);
             int trackOffset = SongGeometry.getTrackOffsetFromMarker(trackNum);
             for(int subdivisionOffset = 0; subdivisionOffset < length; subdivisionOffset += 2) {
-                BlockPos subdivisionMarkerPos = startPos.offset(direction, subdivisionOffset);
-                BlockPos noteBlockPos = subdivisionMarkerPos.offset(widthDirection, trackOffset).offset(Direction.UP);
+                BlockPos subdivisionMarkerPos = startPos.relative(direction, subdivisionOffset);
+                BlockPos noteBlockPos = subdivisionMarkerPos.relative(widthDirection, trackOffset).relative(Direction.UP);
                 BlockState noteBlockState = world.getBlockState(noteBlockPos);
-                BlockPos supportingBlockPos = noteBlockPos.offset(Direction.DOWN);
+                BlockPos supportingBlockPos = noteBlockPos.relative(Direction.DOWN);
                 BlockState supportingBlockState = world.getBlockState(supportingBlockPos);
-                BlockPos forwardBlockPos = noteBlockPos.offset(direction);
+                BlockPos forwardBlockPos = noteBlockPos.relative(direction);
                 BlockState forwardBlockState = world.getBlockState(forwardBlockPos);
-                BlockPos forwardLowerBlockPos = forwardBlockPos.offset(Direction.DOWN);
+                BlockPos forwardLowerBlockPos = forwardBlockPos.relative(Direction.DOWN);
                 BlockState forwardLowerBlockState = world.getBlockState(forwardLowerBlockPos);
                 if(SongGeometry.isCenterTrack(trackNum)) {
-                    if(!noteBlockState.isSolidBlock(world, noteBlockPos)) {
+                    if(!noteBlockState.isRedstoneConductor(world, noteBlockPos)) {
                         throw new SongDetectionException(startPos, direction, numTracks, "Missing/incorrect block at %s (must be solid block)".formatted(noteBlockPos.toShortString()));
                     }
-                    if(forwardBlockState.getBlock() != Blocks.REPEATER || forwardBlockState.get(RepeaterBlock.FACING) != direction.getOpposite()) {
-                        throw new SongDetectionException(startPos, direction, numTracks, "Missing/incorrect block at %s (must be %s)".formatted(forwardBlockPos.toShortString(), Blocks.REPEATER.getDefaultState().with(RepeaterBlock.FACING, direction.getOpposite())));
+                    if(forwardBlockState.getBlock() != Blocks.REPEATER || forwardBlockState.getValue(RepeaterBlock.FACING) != direction.getOpposite()) {
+                        throw new SongDetectionException(startPos, direction, numTracks, "Missing/incorrect block at %s (must be %s)".formatted(forwardBlockPos.toShortString(), Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.FACING, direction.getOpposite())));
                     }
 
                     if(noteBlockState.getBlock() == Blocks.NOTE_BLOCK) {
                         track.add(Song.Note.getPitched(
-                                noteBlockState.get(NoteBlock.NOTE),
+                                noteBlockState.getValue(NoteBlock.NOTE),
                                 supportingBlockState,
-                                forwardBlockState.get(RepeaterBlock.DELAY)));
+                                forwardBlockState.getValue(RepeaterBlock.DELAY)));
                     }
                     else {
-                        track.add(Song.Note.getRest(forwardBlockState.get(RepeaterBlock.DELAY)));
+                        track.add(Song.Note.getRest(forwardBlockState.getValue(RepeaterBlock.DELAY)));
                     }
 
                 }
@@ -85,7 +84,7 @@ public class SongLoader {
                     }
                     if(noteBlockState.getBlock() == Blocks.NOTE_BLOCK) {
                         // only center track notes have nextDelay as side track note blocks do not have repeaters
-                        track.add(Song.Note.getPitched(noteBlockState.get(NoteBlock.NOTE), supportingBlockState, 0));
+                        track.add(Song.Note.getPitched(noteBlockState.getValue(NoteBlock.NOTE), supportingBlockState, 0));
                     }
                     else {
                         track.add(Song.Note.getRest(0));

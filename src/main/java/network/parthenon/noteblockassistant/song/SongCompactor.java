@@ -1,13 +1,17 @@
 package network.parthenon.noteblockassistant.song;
 
 import net.minecraft.block.*;
-import net.minecraft.block.enums.WireConnection;
-import net.minecraft.util.BlockRotation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Direction.Axis;
-import net.minecraft.world.World;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NoteBlock;
+import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RepeaterBlock;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.RedstoneSide;
 import java.util.EnumSet;
 
 /**
@@ -24,7 +28,7 @@ public class SongCompactor {
      * @param direction Direction the song initially travels away from the start position.
      * @param song      The song to place.
      */
-    public static void putCompact(World world, BlockPos startPos, Direction direction, Song song) {
+    public static void putCompact(Level world, BlockPos startPos, Direction direction, Song song) {
         // Each row (excluding the first) adds 2 blocks to the width of the built song.
         // So, ideally, we would have one row for every 2 blocks of length; i.e. the length of each row would be
         // twice the number of rows.
@@ -48,67 +52,67 @@ public class SongCompactor {
      * @param rowLength The length of each row. Must be an even number to allow for a note block and repeater per note..
      * @param song      The song to place.
      */
-    public static void putCompact(World world, BlockPos startPos, Direction direction, int rowLength, Song song) {
+    public static void putCompact(Level world, BlockPos startPos, Direction direction, int rowLength, Song song) {
         if(rowLength % 2 == 1) {
             throw new IllegalArgumentException("Row length must be even.");
         }
 
         int numTracks = song.getTracks();
         int numNotes = song.getLength();
-        Direction widthDirection = direction.rotateClockwise(Axis.Y);
+        Direction widthDirection = direction.getClockWise(Axis.Y);
 
         for(int trackNum = 0; trackNum < song.getTracks(); trackNum++) {
             Direction currentDirection = direction;
-            BlockPos currentPos = startPos.offset(widthDirection, 1 + SongGeometry.getTrackOffsetFromCenter(trackNum))
+            BlockPos currentPos = startPos.relative(widthDirection, 1 + SongGeometry.getTrackOffsetFromCenter(trackNum))
                     // each group of three tracks goes 4 blocks down
-                    .offset(Direction.DOWN, (trackNum / 3) * 4);
+                    .relative(Direction.DOWN, (trackNum / 3) * 4);
             int currentRowLength = 0;
             for(int noteNum = 0; noteNum < song.getLength(); noteNum++) {
                 // place a supporting floor
-                world.setBlockState(currentPos.offset(Direction.DOWN, 2), SongBlockStates.FLOOR);
-                world.setBlockState(currentPos.offset(Direction.DOWN, 2).offset(currentDirection), SongBlockStates.FLOOR);
+                world.setBlockAndUpdate(currentPos.relative(Direction.DOWN, 2), SongBlockStates.FLOOR);
+                world.setBlockAndUpdate(currentPos.relative(Direction.DOWN, 2).relative(currentDirection), SongBlockStates.FLOOR);
 
                 // place note or rest
                 Song.Note note = song.getNote(trackNum, noteNum);
                 if(note.isPitched()) {
-                    world.setBlockState(currentPos, Blocks.NOTE_BLOCK.getDefaultState().with(NoteBlock.NOTE, note.getPitch()));
-                    world.setBlockState(
-                            currentPos.offset(Direction.DOWN),
+                    world.setBlockAndUpdate(currentPos, Blocks.NOTE_BLOCK.defaultBlockState().setValue(NoteBlock.NOTE, note.getPitch()));
+                    world.setBlockAndUpdate(
+                            currentPos.relative(Direction.DOWN),
                             currentDirection == direction ?
                                     note.getInstrumentBlock() :
-                                    note.getInstrumentBlock().rotate(BlockRotation.CLOCKWISE_180)
+                                    note.getInstrumentBlock().rotate(Rotation.CLOCKWISE_180)
                     );
                 }
                 else if(SongGeometry.isCenterTrack(trackNum)) {
                     // rest only needs a block if it's on the center track and therefore carrying redstone power
-                    world.setBlockState(currentPos, SongBlockStates.REDSTONE_BASE);
+                    world.setBlockAndUpdate(currentPos, SongBlockStates.REDSTONE_BASE);
                 }
 
                 // place repeater if needed
                 if(SongGeometry.isCenterTrack(trackNum) && note.getNextDelay() > 0) {
-                    world.setBlockState(currentPos.offset(Direction.DOWN).offset(currentDirection), SongBlockStates.REDSTONE_BASE);
-                    world.setBlockState(
-                            currentPos.offset(currentDirection),
-                            Blocks.REPEATER.getDefaultState()
-                                    .with(RepeaterBlock.DELAY, note.getNextDelay())
-                                    .with(RepeaterBlock.FACING, currentDirection.getOpposite())
+                    world.setBlockAndUpdate(currentPos.relative(Direction.DOWN).relative(currentDirection), SongBlockStates.REDSTONE_BASE);
+                    world.setBlockAndUpdate(
+                            currentPos.relative(currentDirection),
+                            Blocks.REPEATER.defaultBlockState()
+                                    .setValue(RepeaterBlock.DELAY, note.getNextDelay())
+                                    .setValue(RepeaterBlock.FACING, currentDirection.getOpposite())
                     );
                 }
 
                 if(currentRowLength < rowLength) {
-                    currentPos = currentPos.offset(currentDirection, 2);
+                    currentPos = currentPos.relative(currentDirection, 2);
                     currentRowLength += 2;
                 }
                 else if(noteNum < song.getLength() - 1) {
                     // if we've reached the end of the row and there's still song left,
                     // place the redstone dust to turn us around
                     if(SongGeometry.isCenterTrack(trackNum)) {
-                        placeTurnAround(world, currentPos.offset(currentDirection, 2), currentDirection, widthDirection);
+                        placeTurnAround(world, currentPos.relative(currentDirection, 2), currentDirection, widthDirection);
                     }
 
                     // offset by 1 in the current direction before turning around, because the
                     // note blocks now go next to where the repeaters were
-                    currentPos = currentPos.offset(widthDirection, 2).offset(currentDirection);
+                    currentPos = currentPos.relative(widthDirection, 2).relative(currentDirection);
                     currentDirection = currentDirection.getOpposite();
                     currentRowLength = 0;
                 }
@@ -116,49 +120,49 @@ public class SongCompactor {
         }
     }
 
-    private static void placeTurnAround(World world, BlockPos nextPos, Direction currentDirection, Direction widthDirection) {
-        world.setBlockState(nextPos.offset(Direction.DOWN), SongBlockStates.REDSTONE_BASE);
-        world.setBlockState(nextPos.offset(Direction.DOWN).offset(currentDirection), SongBlockStates.REDSTONE_BASE);
-        world.setBlockState(nextPos.offset(Direction.DOWN).offset(currentDirection).offset(widthDirection), SongBlockStates.REDSTONE_BASE);
-        world.setBlockState(nextPos.offset(Direction.DOWN).offset(currentDirection).offset(widthDirection, 2), SongBlockStates.REDSTONE_BASE);
-        world.setBlockState(nextPos.offset(Direction.DOWN).offset(widthDirection, 2), SongBlockStates.REDSTONE_BASE);
+    private static void placeTurnAround(Level world, BlockPos nextPos, Direction currentDirection, Direction widthDirection) {
+        world.setBlockAndUpdate(nextPos.relative(Direction.DOWN), SongBlockStates.REDSTONE_BASE);
+        world.setBlockAndUpdate(nextPos.relative(Direction.DOWN).relative(currentDirection), SongBlockStates.REDSTONE_BASE);
+        world.setBlockAndUpdate(nextPos.relative(Direction.DOWN).relative(currentDirection).relative(widthDirection), SongBlockStates.REDSTONE_BASE);
+        world.setBlockAndUpdate(nextPos.relative(Direction.DOWN).relative(currentDirection).relative(widthDirection, 2), SongBlockStates.REDSTONE_BASE);
+        world.setBlockAndUpdate(nextPos.relative(Direction.DOWN).relative(widthDirection, 2), SongBlockStates.REDSTONE_BASE);
 
         // "up" is the currentDirection, assume right is the widthDirection
 
         //  |
         //  |
         //  |
-        world.setBlockState(nextPos,
+        world.setBlockAndUpdate(nextPos,
                 getRedstoneWire(EnumSet.of(currentDirection, currentDirection.getOpposite())));
         //
         //  ┌--
         //  |
-        world.setBlockState(nextPos.offset(currentDirection),
+        world.setBlockAndUpdate(nextPos.relative(currentDirection),
                 getRedstoneWire(EnumSet.of(currentDirection.getOpposite(), widthDirection)));
 
         //
         // ----
         //
-        world.setBlockState(nextPos.offset(currentDirection).offset(widthDirection),
+        world.setBlockAndUpdate(nextPos.relative(currentDirection).relative(widthDirection),
                 getRedstoneWire(EnumSet.of(widthDirection.getOpposite(), widthDirection)));
 
         //
         // --┐
         //   |
-        world.setBlockState(nextPos.offset(currentDirection).offset(widthDirection, 2),
+        world.setBlockAndUpdate(nextPos.relative(currentDirection).relative(widthDirection, 2),
                 getRedstoneWire(EnumSet.of(widthDirection.getOpposite(), currentDirection.getOpposite())));
 
         //  |
         //  |
         //  |
-        world.setBlockState(nextPos.offset(widthDirection, 2),
+        world.setBlockAndUpdate(nextPos.relative(widthDirection, 2),
                 getRedstoneWire(EnumSet.of(currentDirection.getOpposite(), currentDirection)));
     }
 
     private static BlockState getRedstoneWire(EnumSet<Direction> connections) {
-        BlockState wireState = Blocks.REDSTONE_WIRE.getDefaultState();
+        BlockState wireState = Blocks.REDSTONE_WIRE.defaultBlockState();
         for(Direction d : connections) {
-            wireState = wireState.with(RedstoneWireBlock.DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(d), WireConnection.SIDE);
+            wireState = wireState.setValue(RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(d), RedstoneSide.SIDE);
         }
         return wireState;
     }

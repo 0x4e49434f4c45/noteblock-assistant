@@ -1,13 +1,12 @@
 package network.parthenon.noteblockassistant.song;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.RepeaterBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
-
 import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RepeaterBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class SongTemplateGenerator {
     /**
@@ -22,7 +21,7 @@ public class SongTemplateGenerator {
      * @param instrBlocks         A list of instrument-determining blocks. A track will be generated for each one.
      */
     public static void generate(
-            World world,
+            Level world,
             BlockPos cornerPos,
             Direction direction,
             int measures,
@@ -36,36 +35,36 @@ public class SongTemplateGenerator {
         }
 
         BlockPos currentPos = cornerPos;
-        BlockState repeaterState = Blocks.REPEATER.getDefaultState()
-                .with(RepeaterBlock.FACING, direction.getOpposite())
-                .with(RepeaterBlock.DELAY, subdivisonDelay);
+        BlockState repeaterState = Blocks.REPEATER.defaultBlockState()
+                .setValue(RepeaterBlock.FACING, direction.getOpposite())
+                .setValue(RepeaterBlock.DELAY, subdivisonDelay);
 
         for(int measure = 0; measure < measures; measure++) {
             for(int beat = 0; beat < beatsPerMeasure; beat++) {
                 for(int subdivision = 0; subdivision < subdivisionsPerBeat; subdivision++) {
                     // set markers
-                    world.setBlockState(currentPos, getMarkerBlock(beat, subdivision));
-                    world.setBlockState(currentPos.offset(direction), SongBlockStates.FILL);
+                    world.setBlockAndUpdate(currentPos, getMarkerBlock(beat, subdivision));
+                    world.setBlockAndUpdate(currentPos.relative(direction), SongBlockStates.FILL);
 
                     // set tracks
                     for(int track = 0; track < instrBlocks.size(); track++) {
-                        BlockPos trackPos = currentPos.offset(direction.rotateClockwise(Direction.Axis.Y), SongGeometry.getTrackOffsetFromMarker(track));
+                        BlockPos trackPos = currentPos.relative(direction.getClockWise(Direction.Axis.Y), SongGeometry.getTrackOffsetFromMarker(track));
                         // floor blocks
-                        world.setBlockState(trackPos.offset(Direction.DOWN), SongBlockStates.FLOOR);
-                        world.setBlockState(trackPos.offset(Direction.DOWN).offset(direction), SongBlockStates.FLOOR);
+                        world.setBlockAndUpdate(trackPos.relative(Direction.DOWN), SongBlockStates.FLOOR);
+                        world.setBlockAndUpdate(trackPos.relative(Direction.DOWN).relative(direction), SongBlockStates.FLOOR);
                         // instrument block
-                        world.setBlockState(trackPos, instrBlocks.get(track));
+                        world.setBlockAndUpdate(trackPos, instrBlocks.get(track));
                         // filler block; this is where the note block would go if desired
-                        world.setBlockState(trackPos.offset(Direction.UP), SongBlockStates.REDSTONE_BASE);
+                        world.setBlockAndUpdate(trackPos.relative(Direction.UP), SongBlockStates.REDSTONE_BASE);
                         if(SongGeometry.isCenterTrack(track)) {
                             // repeater and block it sits on
-                            world.setBlockState(trackPos.offset(direction), SongBlockStates.REDSTONE_BASE);
-                            world.setBlockState(trackPos.offset(direction).offset(Direction.UP), repeaterState);
+                            world.setBlockAndUpdate(trackPos.relative(direction), SongBlockStates.REDSTONE_BASE);
+                            world.setBlockAndUpdate(trackPos.relative(direction).relative(Direction.UP), repeaterState);
                         }
                     }
 
                     // move to next subdivision
-                    currentPos = currentPos.offset(direction, 2);
+                    currentPos = currentPos.relative(direction, 2);
                 }
             }
         }

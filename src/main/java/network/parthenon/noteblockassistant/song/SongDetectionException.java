@@ -1,7 +1,7 @@
 package network.parthenon.noteblockassistant.song;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 
 /**
  * Indicates a problem validating the song at the specified location.

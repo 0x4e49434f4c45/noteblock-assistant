@@ -1,8 +1,7 @@
 package network.parthenon.noteblockassistant.song;
 
-import net.minecraft.block.BlockState;
-
 import java.util.List;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Stores the pitches, instruments, rests, and timings that make up a song.
