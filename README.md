@@ -1,5 +1,13 @@
 # Note Block Assistant
 
+**AI-Free Software**
+
+*Note Block Assistant is proudly built by human hands, as a labor of love for the art of programming and the tradition of looking into the guts of a piece of software with one's own eyes.*
+
+*No code within this mod was created by LLM or "AI" tools.*
+
+## Overview
+
 Note Block Assistant is a utility mod for making note block songs. It's designed to automate the manual steps in the way
 I personally make note block songs, particularly the compaction step. If you also find it helpful, wonderful!
 
