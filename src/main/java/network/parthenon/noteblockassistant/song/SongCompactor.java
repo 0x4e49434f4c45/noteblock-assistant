@@ -6,7 +6,7 @@ import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.NoteBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
@@ -161,7 +161,7 @@ public class SongCompactor {
     private static BlockState getRedstoneWire(EnumSet<Direction> connections) {
         BlockState wireState = Blocks.REDSTONE_WIRE.defaultBlockState();
         for(Direction d : connections) {
-            wireState = wireState.setValue(RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(d), RedstoneSide.SIDE);
+            wireState = wireState.setValue(RedstoneWireBlock.PROPERTY_BY_DIRECTION.get(d), RedstoneSide.SIDE);
         }
         return wireState;
     }
